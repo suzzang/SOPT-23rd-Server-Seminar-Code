@@ -2,10 +2,12 @@ package org.sopt.seminar4.api;
 
 import lombok.extern.slf4j.Slf4j;
 import org.sopt.seminar4.dto.User;
+import org.sopt.seminar4.model.SignUpReq;
 import org.sopt.seminar4.service.UserService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Optional;
 
@@ -35,9 +37,10 @@ public class UserController {
     }
 
     @PostMapping("")
-    public ResponseEntity signup(@RequestBody final User user) {
+    public ResponseEntity signup(SignUpReq signUpReq, @RequestPart(value = "profile",required = false)final MultipartFile profile) {
         try {
-            return new ResponseEntity<>(userService.save(user), HttpStatus.OK);
+            if(profile!= null) signUpReq.setProfile(profile);
+            return new ResponseEntity<>(userService.save(signUpReq), HttpStatus.OK);
         }catch (Exception e) {
             log.error(e.getMessage());
             return new ResponseEntity<>(FAIL_DEFAULT_RES, HttpStatus.INTERNAL_SERVER_ERROR);

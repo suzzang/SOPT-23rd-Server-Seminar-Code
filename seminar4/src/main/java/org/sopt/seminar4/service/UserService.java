@@ -4,6 +4,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.sopt.seminar4.dto.User;
 import org.sopt.seminar4.mapper.UserMapper;
 import org.sopt.seminar4.model.DefaultRes;
+import org.sopt.seminar4.model.SignUpReq;
+import org.sopt.seminar4.service.FileUploadService;
 import org.sopt.seminar4.utils.ResponseMessage;
 import org.sopt.seminar4.utils.StatusCode;
 import org.springframework.stereotype.Service;
@@ -18,13 +20,18 @@ public class UserService {
 
     private final UserMapper userMapper;
 
+    private final FileUploadService fileUploadService;
+
     /**
      * UserMapper 생성자 의존성 주입
+     * FileUploadService 생성자 의존성 주입
      *
-     * @param userMapper
+     * @param userMapper        userMapper 서비스 객체
+     * @param fileUploadService fileUpload 서비스 객체
      */
-    public UserService(final UserMapper userMapper) {
+    public UserService(final UserMapper userMapper, final FileUploadService fileUploadService) { //여기에 생성자 의존성 주입!!!!!!!
         this.userMapper = userMapper;
+        this.fileUploadService = fileUploadService;
     }
 
     /**
@@ -55,17 +62,21 @@ public class UserService {
     /**
      * 회원 가입
      *
-     * @param user 회원 데이터
+     * @param signUpReq 회원 데이터
      * @return DefaultRes
      */
     @Transactional
-    public DefaultRes save(final User user) {
+    public DefaultRes save(SignUpReq signUpReq) {
         try {
-            userMapper.save(user);
+            //파일이 있다면 파일을 S3에 저장 후 경로를 저장
+            if (signUpReq.getProfile() != null)
+                signUpReq.setProfileUrl(fileUploadService.upload(signUpReq.getProfile()));
+
+            userMapper.save(signUpReq);
             return DefaultRes.res(StatusCode.CREATED, ResponseMessage.CREATED_USER);
         } catch (Exception e) {
             //Rollback
-            TransactionAspectSupport.currentTransactionStatus().setRollbackOnly(); //sql문이 실패 했을때
+            TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
             log.error(e.getMessage());
             return DefaultRes.res(StatusCode.DB_ERROR, ResponseMessage.DB_ERROR);
         }
